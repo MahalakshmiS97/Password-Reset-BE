@@ -6,5 +6,5 @@ dotenv.config();
 const PORT = process.env.PORT
 const app = express()
 app.use(express.json())
-app.use('/create',AppRoutes)
+app.use('/user',AppRoutes)
 app.listen(PORT,()=> console.log(`server listening to port ${PORT}`))
