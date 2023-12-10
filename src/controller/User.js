@@ -12,7 +12,7 @@ const create = async(req,res) =>{
             req.body.password= await Auth.hashPassword(req.body.password)
             await userModel.create(req.body)
             res.status(202).send({
-                message:"user created successfully"
+                message:"user created successfully",
             })
         }
         else{
@@ -40,7 +40,8 @@ const login = async(req,res)=>{
                 })
                 res.status(200).send({
                     message:"Login Successfully",
-                    token
+                    token,
+                    user
 
                 })
             }
@@ -74,12 +75,12 @@ const forgotPassword  = async(req,res)=>{
                     pass:process.env.PASSWORD
                 },
             });
-            let token =`${process.env.FE_URL}/reset/${user._id}`;
+            const token = await Auth.createToken({id:user._id})
             let composeEmail={
                 from:process.env.email,
                 to:user.email,
                 subject:"Password reset link",
-                html: `<p>Click <a href='${token}'> to reset your password</p>`
+                html: `<p>Click <a href='${process.env.FE_URL}/${token}'> to reset your password</p>`
             }
             sender.sendMail(composeEmail, function(error, info){
                 if(error){
@@ -107,7 +108,7 @@ const forgotPassword  = async(req,res)=>{
 
 const resetPassword = async(req,res)=>{
     try {
-        let token= req.headers.authorization?.split(" ")[1]
+        let token= req.headers.authorization?.split("")[1]
        let data = await Auth.decodeToken(token)
        if(req.body.newPassword === req.body.confirmPassword){
         let user = await userModel.findOne({email:data.email})
@@ -132,6 +133,8 @@ const resetPassword = async(req,res)=>{
         })
     }
 }
+
+
 export default {
     create,
     login,

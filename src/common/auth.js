@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken'
 
 const hashPassword = async(password)=>{
     let salt = await bcrypt.genSalt(Number(process.env.SALT_ROUNDS))
-    console.log(salt)
     let hash = await bcrypt.hash(password,salt)
     return hash
 }
