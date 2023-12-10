@@ -2,9 +2,11 @@ import userModel from '../models/User.js'
 import Auth from '../common/auth.js'
 import nodeMail from 'nodemailer'
 import dotenv from 'dotenv'
-
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 dotenv.config()
 
+//Create User 
 const create = async(req,res) =>{
     try {
         let user = await userModel.findOne({email:req.body.email}) 
@@ -28,6 +30,7 @@ const create = async(req,res) =>{
     }
 }
 
+//Login User
 const login = async(req,res)=>{
     try {
         let user = await userModel.findOne({email:req.body.email}) 
@@ -64,6 +67,7 @@ const login = async(req,res)=>{
     }
 }
 
+//Forgot Password
 const forgotPassword  = async(req,res)=>{
     try {
         let user = await userModel.findOne({email:req.body.email})
@@ -76,11 +80,12 @@ const forgotPassword  = async(req,res)=>{
                 },
             });
             const token = await Auth.createToken({id:user._id})
+            //Reset link sending through Node Mailer
             let composeEmail={
                 from:process.env.email,
                 to:user.email,
                 subject:"Password reset link",
-                html: `<p>Click <a href='${process.env.FE_URL}/${token}'> to reset your password</p>`
+                html: `<p>Click <a href='${process.env.FE_URL}/${user._id}/${token}'> to reset your password</p>`
             }
             sender.sendMail(composeEmail, function(error, info){
                 if(error){
@@ -106,34 +111,22 @@ const forgotPassword  = async(req,res)=>{
     }
 }
 
+//Reset Password
 const resetPassword = async(req,res)=>{
-    try {
-        let token= req.headers.authorization?.split("")[1]
-       let data = await Auth.decodeToken(token)
-       if(req.body.newPassword === req.body.confirmPassword){
-        let user = await userModel.findOne({email:data.email})
-        user.password=await Auth.hashPassword(req.body.newPassword)
-        await user.save()
-
-        res.status(200).send({
-            message:"Password Updated Successfully"
-        })
-       }
-       else{
-        res.status(400).send({
-            message:"Password Does Not Match"
-        })
-       }
-    } 
-    catch (error) {
-        console.log(error)
-        res.status(500).send({
-            message:"Internel Server error",
-            error:error.message
-        })
-    }
+    const {id,token} = req.params
+    const {password} = req.body
+    jwt.verify(token,process.env.JWT_SECRET,(err,decoded)=>{
+        if(err){
+            bcrypt.hash(password,10)
+            .then(hash=>{
+                userModel.findByIdAndUpdate({_id:id},{password:hash})
+                .then(u=>res.send({Status:"Success"}))
+                .catch(err=>res.send({Status:err}))
+            })
+            .catch(err=>res.send({Status:err}))
+        }
+    })
 }
-
 
 export default {
     create,
